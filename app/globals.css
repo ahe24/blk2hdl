@@ -1,0 +1,393 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --color-bg-primary: #0a0a0f;
+  --color-bg-secondary: #1a1a24;
+  --color-bg-tertiary: #2a2a3a;
+  --color-accent: #818cf8;
+  --color-accent-hover: #a5b4fc;
+  --color-text-primary: #f8f8f8;
+  --color-text-secondary: #a0a0b0;
+  --color-border: #3a3a4a;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-wire: #94a3b8;
+  --color-wire-selected: #ffffff;
+  --color-gate-fill: #1e293b;
+  --color-gate-stroke: #e2e8f0;
+  --color-junction: #94a3b8;
+  --color-port-stroke: #fb923c;
+  --color-clock-stroke: #f59e0b;
+  --color-gate-detail: #e2e8f0;
+}
+
+.light-mode {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-border: #e2e8f0;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-wire: #64748b;
+  --color-wire-selected: #000000;
+  --color-gate-fill: #ffffff;
+  --color-gate-stroke: #0f172a;
+  --color-junction: #64748b;
+  --color-port-stroke: #f97316;
+  --color-clock-stroke: #ea580c;
+  --color-gate-detail: #0f172a;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: 60px;
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 10;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: -0.5px;
+}
+
+.project-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+button {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+button:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 280px;
+  background: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.component-category {
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.component-category .sidebar-title {
+  grid-column: 1 / -1;
+  margin-bottom: 4px;
+}
+
+.component-item {
+  padding: 10px 8px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: grab;
+  font-size: 13px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.component-item:hover {
+  border-color: var(--color-accent);
+  background: var(--color-bg-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.component-item:active {
+  cursor: grabbing;
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.canvas-container {
+  flex: 1;
+  position: relative;
+  background: var(--color-bg-primary);
+}
+
+.right-panel {
+  width: 400px;
+  background: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.panel-section:last-child {
+  border-bottom: none;
+}
+
+.panel-header {
+  padding: 12px 16px;
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.code-preview {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--color-bg-primary);
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre;
+  overflow-x: auto;
+  color: #d4d4d4;
+}
+
+/* Custom Gate Nodes */
+.gate-node {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: auto !important;
+}
+
+.gate-node svg {
+  display: block;
+}
+
+.gate-node.selected {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.io-node {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  min-width: auto !important;
+}
+
+.io-node svg {
+  display: block;
+}
+
+.io-node.selected {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.io-label {
+  user-select: none;
+}
+
+/* React Flow customization */
+.react-flow {
+  background: var(--color-bg-primary);
+}
+
+.react-flow__node {
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+
+/* Override for I/O port nodes - make them transparent */
+/* Override for I/O port nodes - make them transparent */
+.react-flow__node.react-flow__node-input,
+.react-flow__node.react-flow__node-output,
+.react-flow__node.react-flow__node-clock,
+.react-flow__node.react-flow__node-junction,
+.react-flow__node.react-flow__node-and,
+.react-flow__node.react-flow__node-or,
+.react-flow__node.react-flow__node-not,
+.react-flow__node.react-flow__node-nand,
+.react-flow__node.react-flow__node-nor,
+.react-flow__node.react-flow__node-xor,
+.react-flow__node.react-flow__node-xnor,
+.react-flow__node.react-flow__node-buffer,
+.react-flow__node.react-flow__node-dff,
+.react-flow__node.react-flow__node-mux2,
+.react-flow__node.react-flow__node-mux4,
+.react-flow__node.react-flow__node-demux2,
+.react-flow__node.react-flow__node-decoder,
+.react-flow__node.react-flow__node-add,
+.react-flow__node.react-flow__node-sub,
+.react-flow__node.react-flow__node-mul,
+.react-flow__node.react-flow__node-comp {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__node.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg-primary);
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+
+.react-flow__handle:hover {
+  opacity: 1;
+}
+
+/* Hide handles on I/O ports by default, show on hover */
+.io-node .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: var(--color-accent);
+  border: 2px solid var(--color-bg-primary);
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.io-node:hover .react-flow__handle,
+.io-node .react-flow__handle:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.react-flow__edge-path {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-accent-hover);
+  stroke-width: 2.5;
+}
+
+/* Connection line style when dragging */
+.react-flow__connectionline {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+.react-flow__minimap {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.react-flow__controls {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.react-flow__controls-button {
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--color-accent);
+}
