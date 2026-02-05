@@ -507,3 +507,38 @@ export const JunctionNode = memo(({ data }: NodeProps) => {
     );
 });
 JunctionNode.displayName = 'JunctionNode';
+
+// Constant Node
+export const ConstantNode = memo(({ data }: NodeProps) => {
+    const value = data.value || data.label || '0';
+
+    return (
+        <div style={{ position: 'relative', width: '35px', height: '30px' }}>
+            <svg width="35" height="30" viewBox="0 0 35 30">
+                {/* Rounded rectangle / pill shape */}
+                <rect
+                    x="1"
+                    y="1"
+                    width="33"
+                    height="28"
+                    fill="var(--color-gate-fill)"
+                    stroke="var(--color-port-stroke)"
+                    strokeWidth="2"
+                    rx="14"
+                />
+                <text
+                    x="17.5"
+                    y="19"
+                    textAnchor="middle"
+                    fill="var(--color-port-stroke)"
+                    fontSize="12"
+                    fontWeight="bold"
+                >
+                    {value}
+                </text>
+            </svg>
+            <Handle type="source" position={Position.Right} id="out" style={{ top: '50%', transform: 'translateY(-50%)', opacity: 0 }} />
+        </div>
+    );
+});
+ConstantNode.displayName = 'ConstantNode';

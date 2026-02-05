@@ -115,26 +115,53 @@ export default function PropertiesPanel({ selectedNode, selectedEdge }: Properti
                         </div>
                     </div>
 
-                    <div style={{ marginBottom: '12px' }}>
-                        <label style={{ fontSize: '11px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>
-                            NAME / LABEL
-                        </label>
-                        <input
-                            type="text"
-                            value={nodeName}
-                            onChange={(e) => handleNodeNameChange(e.target.value)}
-                            placeholder="Enter name..."
-                            style={{
-                                width: '100%',
-                                padding: '6px 8px',
-                                background: 'var(--color-bg-primary)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: '4px',
-                                color: 'var(--color-text-primary)',
-                                fontSize: '12px',
-                            }}
-                        />
-                    </div>
+                    {/* Show NAME/LABEL for all nodes except constants */}
+                    {selectedNode.type !== 'constant' && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '11px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>
+                                NAME / LABEL
+                            </label>
+                            <input
+                                type="text"
+                                value={nodeName}
+                                onChange={(e) => handleNodeNameChange(e.target.value)}
+                                placeholder="Enter name..."
+                                style={{
+                                    width: '100%',
+                                    padding: '6px 8px',
+                                    background: 'var(--color-bg-primary)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '4px',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '12px',
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Show VALUE field for constants */}
+                    {selectedNode.type === 'constant' && (
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{ fontSize: '11px', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '4px' }}>
+                                VALUE
+                            </label>
+                            <input
+                                type="text"
+                                value={nodeName}
+                                onChange={(e) => handleNodeNameChange(e.target.value)}
+                                placeholder="0"
+                                style={{
+                                    width: '100%',
+                                    padding: '6px 8px',
+                                    background: 'var(--color-bg-primary)',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: '4px',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '12px',
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '16px' }}>
                         <strong>Node ID:</strong> {selectedNode.id}

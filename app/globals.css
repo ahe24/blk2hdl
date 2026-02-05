@@ -297,8 +297,10 @@ button:active {
 /* Override for I/O port nodes - make them transparent */
 /* Override for I/O port nodes - make them transparent */
 .react-flow__node.react-flow__node-input,
+.react-flow__node.react-flow__node-input,
 .react-flow__node.react-flow__node-output,
 .react-flow__node.react-flow__node-clock,
+.react-flow__node.react-flow__node-constant,
 .react-flow__node.react-flow__node-junction,
 .react-flow__node.react-flow__node-and,
 .react-flow__node.react-flow__node-or,
@@ -324,8 +326,9 @@ button:active {
 }
 
 .react-flow__node.selected {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent);
+  outline: 2px solid var(--color-accent) !important;
+  outline-offset: 4px;
+  border-radius: 8px;
 }
 
 .react-flow__handle {

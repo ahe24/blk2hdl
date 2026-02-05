@@ -117,6 +117,13 @@ const SidebarIcon = ({ type }: { type: string }) => {
                     <path d="M 4 6 L 16 4 L 16 16 L 4 14 Z" fill="var(--color-bg-tertiary)" stroke="var(--color-accent)" />
                 </svg>
             );
+        case 'constant':
+            return (
+                <svg {...props}>
+                    <rect x="3" y="3" width="14" height="14" rx="2" fill="var(--color-bg-tertiary)" stroke="var(--color-port-stroke)" strokeWidth="1.5" />
+                    <text x="10" y="14" textAnchor="middle" fill="var(--color-port-stroke)" fontSize="10" fontWeight="bold">0</text>
+                </svg>
+            );
         default:
             return <span style={{ fontSize: '16px', marginRight: '8px' }}>🔹</span>;
     }
@@ -129,6 +136,7 @@ const COMPONENTS = [
             { type: 'input', label: 'Input' },
             { type: 'output', label: 'Output' },
             { type: 'clock', label: 'Clock' },
+            { type: 'constant', label: 'Constant' },
         ],
     },
     {

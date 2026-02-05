@@ -77,8 +77,15 @@ export function generateVerilogCode(
 
         let wireName: string;
 
+        // If source is a constant, use its value with proper Verilog notation
+        if (sourceNode && sourceNode.type === 'constant') {
+            const value = sourceNode.label || '0';
+            const width = sourceNode.width;
+            // Format as Verilog constant: width'bvalue or width'hvalue
+            wireName = width > 1 ? `${width}'d${value}` : `1'b${value}`;
+        }
         // If source is an input/clock port, use the port name directly
-        if (sourceNode && ['input', 'clock'].includes(sourceNode.type)) {
+        else if (sourceNode && ['input', 'clock'].includes(sourceNode.type)) {
             wireName = sourceNode.label;
         }
         // If target is an output port, use the port name directly
@@ -127,10 +134,12 @@ export function generateVerilogCode(
         }
     });
 
-    // Populate wires set with resolved names
+    // Populate wires set with resolved names (excluding constants)
     edges.forEach(edge => {
         const wireName = resolveNetName(edge.id);
-        if (wireName && !inputs.includes(wireName) && !outputs.includes(wireName) && !regs.has(wireName)) {
+        // Skip if it's a constant (contains apostrophe like "1'b1" or "8'd5")
+        const isConstant = wireName && wireName.includes("'");
+        if (wireName && !inputs.includes(wireName) && !outputs.includes(wireName) && !regs.has(wireName) && !isConstant) {
             wires.add(wireName);
         }
     });
@@ -216,8 +225,8 @@ export function generateVerilogCode(
     nodes.forEach(node => {
         const nodeType = node.data?.componentType || node.type;
 
-        // Skip I/O nodes as they're already declared as ports
-        if (['input', 'output', 'inout', 'clock'].includes(nodeType)) {
+        // Skip I/O nodes and constants as they're already handled
+        if (['input', 'output', 'inout', 'clock', 'constant'].includes(nodeType)) {
             return;
         }
 

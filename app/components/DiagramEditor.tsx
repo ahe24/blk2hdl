@@ -36,6 +36,7 @@ import {
     MuxNode,
     ArithmeticNode,
     JunctionNode,
+    ConstantNode,
 } from './GateNodes';
 import { CustomEdge } from './CustomEdge';
 
@@ -86,6 +87,7 @@ function DiagramEditorInner() {
             mul: ArithmeticNode,
             comp: ArithmeticNode,
             junction: JunctionNode,
+            constant: ConstantNode,
         }),
         []
     );
