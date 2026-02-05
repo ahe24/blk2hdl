@@ -242,7 +242,7 @@ export const DffNode = memo(({ data }: NodeProps) => {
                     y="5"
                     width="40"
                     height="50"
-                    fill="var(--color-gate-fill)"
+                    fill="var(--color-storage-fill)"
                     stroke="var(--color-gate-stroke)"
                     strokeWidth="2"
                     rx="4"
@@ -390,7 +390,7 @@ export const MuxNode = memo(({ data }: NodeProps) => {
                 <path d={`M 50 ${height / 2} L 60 ${height / 2}`} stroke="var(--color-gate-stroke)" strokeWidth="2" />
                 <path
                     d={`M 10 0 L 50 10 L 50 ${height - 10} L 10 ${height} Z`}
-                    fill="var(--color-gate-fill)"
+                    fill="var(--color-comb-fill)"
                     stroke="var(--color-gate-stroke)"
                     strokeWidth="2"
                 />
@@ -436,7 +436,7 @@ export const ArithmeticNode = memo(({ data }: NodeProps) => {
                     cx="25"
                     cy="30"
                     r="20"
-                    fill="var(--color-gate-fill)"
+                    fill="var(--color-arith-fill)"
                     stroke="var(--color-gate-stroke)"
                     strokeWidth="2"
                 />

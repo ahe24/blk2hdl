@@ -19,6 +19,9 @@
   --color-wire-selected: #ffffff;
   --color-gate-fill: #1e293b;
   --color-gate-stroke: #e2e8f0;
+  --color-storage-fill: #1e3a4b;
+  --color-arith-fill: #2b1e3b;
+  --color-comb-fill: #2b3b1e;
   --color-junction: #94a3b8;
   --color-port-stroke: #fb923c;
   --color-clock-stroke: #f59e0b;
@@ -38,6 +41,9 @@
   --color-wire-selected: #000000;
   --color-gate-fill: #ffffff;
   --color-gate-stroke: #0f172a;
+  --color-storage-fill: #e0f2fe;
+  --color-arith-fill: #fae8ff;
+  --color-comb-fill: #f0fdf4;
   --color-junction: #64748b;
   --color-port-stroke: #f97316;
   --color-clock-stroke: #ea580c;
