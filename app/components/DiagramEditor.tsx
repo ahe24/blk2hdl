@@ -377,6 +377,7 @@ function DiagramEditorInner() {
 
         // Helper to get all targets reachable from a source handle
         // We traverse the EXISTING edges to find end-points
+        // IMPORTANT: Use original 'nodes' array (includes junctions) for tracing
         const visitedEdges = new Set<string>();
 
         const traceTargets = (nodeId: string, handleId: string | null | undefined): Array<{ id: string, handle: string | null, node: Node }> => {
@@ -393,6 +394,7 @@ function DiagramEditorInner() {
                 if (visitedEdges.has(edge.id)) continue;
                 visitedEdges.add(edge.id);
 
+                // Use ORIGINAL nodes array to find junctions
                 const tNode = nodes.find(n => n.id === edge.target);
                 if (!tNode) continue;
 
@@ -408,6 +410,7 @@ function DiagramEditorInner() {
         };
 
         // Build Connectivity Map from Sources
+        // Only iterate over non-junction nodes as sources
         currentNodes.forEach(src => {
             // Find handles that drive nets (Output, or any handle having outgoing edges)
             const sourceEdges = edges.filter(e => e.source === src.id);
@@ -492,23 +495,29 @@ function DiagramEditorInner() {
                 }
                 occupiedChannels.add(channelX);
 
-                // 1. Identify all Y-coordinates involved (Source + Taps)
-                const points = [
-                    { y: srcY, type: 'source', id: srcId, handle: handleId }
-                ];
+                // 1. Identify all Y-coordinates involved (Source + Target Node Centers)
+                // Use target NODE center instead of individual handle positions
+                const targetNodeYs = new Map<string, number>(); // nodeId -> centerY
 
                 targets.forEach(t => {
-                    const tY = t.node.position.y + getHandleOffsetY(t.node, t.handle);
-                    points.push({ y: tY, type: 'target', id: t.id, handle: t.handle });
+                    if (!targetNodeYs.has(t.id)) {
+                        // Find the snapped node from currentNodes
+                        const snappedNode = currentNodes.find(n => n.id === t.id);
+                        if (snappedNode) {
+                            // Calculate node center Y using SNAPPED position
+                            const nodeHeight = snappedNode.height || 60;
+                            const centerY = snappedNode.position.y + (nodeHeight / 2);
+                            targetNodeYs.set(t.id, centerY);
+                        }
+                    }
                 });
 
-                // Sort by Y
-                points.sort((a, b) => a.y - b.y);
+                // Collect unique Y positions (source + all target centers)
+                const yPositions = [srcY, ...Array.from(targetNodeYs.values())];
+                const uniqueYs = Array.from(new Set(yPositions)).sort((a, b) => a - b);
 
-                // Deduplicate Ys
+                // Create junctions at each unique Y
                 const yToJunction = new Map<number, string>();
-                const uniqueYs = Array.from(new Set(points.map(p => p.y))).sort((a, b) => a - b);
-
                 uniqueYs.forEach(y => {
                     const junctionId = `j_channel_${Date.now()}_${newJunctions.length}`;
                     const junctionNode: Node = {
@@ -535,7 +544,7 @@ function DiagramEditorInner() {
                         source: j1,
                         sourceHandle: 'bottom-source', // Connect from bottom of upper junction
                         target: j2,
-                        targetHandle: 't', // Connect to top of lower junction (assuming 't' is top target)
+                        targetHandle: 't', // Connect to top of lower junction
                         type: 'custom'
                     });
                 }
@@ -554,9 +563,10 @@ function DiagramEditorInner() {
                 }
 
                 // Connect Spine Taps to Targets
+                // Group targets by node to connect to the same junction
                 targets.forEach(t => {
-                    const tY = t.node.position.y + getHandleOffsetY(t.node, t.handle);
-                    const tapJunctionId = yToJunction.get(tY);
+                    const nodeCenterY = targetNodeYs.get(t.id)!;
+                    const tapJunctionId = yToJunction.get(nodeCenterY);
                     if (tapJunctionId) {
                         newEdges.push({
                             id: `e_tap_target_${Date.now()}_${newEdges.length}`,
@@ -715,22 +725,7 @@ function DiagramEditorInner() {
                         >
                             Load
                         </button>
-                        <button
-                            onClick={handleAutoRoute}
-                            style={{
-                                flex: 1,
-                                padding: '6px',
-                                background: 'var(--color-bg-tertiary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '12px'
-                            }}
-                            title="Regenerate Routing"
-                        >
-                            Route
-                        </button>
+
                         <input
                             type="file"
                             ref={fileInputRef}

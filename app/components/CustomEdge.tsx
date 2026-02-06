@@ -1,7 +1,8 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import { EdgeProps, getSmoothStepPath, useEdges, Edge, Position, useNodes } from 'reactflow';
+import { useDiagramStore } from '../store/diagramStore';
 import { getSmartPath } from '../lib/router';
 
 export const CustomEdge = memo(({
@@ -23,165 +24,249 @@ export const CustomEdge = memo(({
     // Get all edges to calculate offsets for parallel edges
     const edges = useEdges();
 
-    // Calculate offset to avoid overlapping vertical segments ("Channel Conflict")
-    const offset = useMemo(() => {
-        const myCenterX = (sourceX + targetX) / 2;
-        const myMinY = Math.min(sourceY, targetY);
-        const myMaxY = Math.max(sourceY, targetY);
-
-        // Find all edges that share this "vertical channel"
-        const channelMates = edges.filter((e: Edge) => {
-            if (e.id === id) return true; // Include self
-
-            // Should have valid handle positions. 
-            // Note: edge object in useEdges might not have raw positions updated in real-time during drag, 
-            // but for static routing it's fine. 
-            // Actually, 'edges' from useEdges() stores the data model. 
-            // It doesn't strictly have X/Y unless I store it?
-            // ReactFlow nodes have positions. Edges connect handles.
-            // I need the positions of the *other* edges' source/target.
-            // fetching all nodes + edges is expensive here?
-            // "edges" from store doesn't have computed sourceX/targetX.
-            // Only the Edge component props have them.
-            // This makes purely global edge lookahead hard inside a component without external layout engine.
-
-            // fallback: Use the sibling logic which relies on topology (source + handleId).
-            // This solves the "same node" overlap.
-            // For "different nodes aligned vertically", we can't easily detect generic overlap 
-            // without reading all node positions.
-            // 
-            // But I have 'nodes' from useNodes()!
-            // I can lookup coordinates.
-            return false;
-        });
-
-        // REVERTING global complexity for now to avoid breaking edge rendering loop.
-        // Stick to Sibling Logic but enhance it.
-        // Also add a determinstic offset based on Y to stagger vertical alignments of DIFFERENT nodes.
-
-        // Find all edges that share the same source and source handle
-        const siblings = edges.filter((e: Edge) =>
-            e.source === source &&
-            e.sourceHandle === sourceHandleId
-        );
-
-        // Usage of explicit routing index from data (set by Auto-Route function)
-        // If not present, fall back to ID-based sorting
-        const routingIndex = (data as any)?.routingIndex;
-        let index = -1;
-
-        if (typeof routingIndex === 'number') {
-            index = routingIndex;
-        } else {
-            // Sort by ID to ensure consistent ordering
-            siblings.sort((a: Edge, b: Edge) => a.id.localeCompare(b.id));
-            // Find index of current edge
-            index = siblings.findIndex((e: Edge) => e.id === id);
-        }
-
-        // Original sibling offset
-        let calculatedOffset = 20 + (index > 0 ? index * 15 : 0);
-
-        // Add a "Jitter" based on Source Node's Y position to stagger vertical segments of ALIGNED nodes
-        // Use 15px steps to match grid and sibling spacing
-        const verticalStagger = (Math.floor(sourceY / 15) % 5) * 15;
-
-        return calculatedOffset + verticalStagger;
-    }, [edges, id, source, sourceHandleId, sourceY, data]);
-
     const nodes = useNodes();
+
+    // Calculate offset to avoid overlapping parallel segments from DIFFERENT nets
+    const offset = useMemo(() => {
+        // Shared trunk logic: All siblings from the SAME (source, handle) share the SAME centerX
+        const sNode = nodes.find(n => n.id === source);
+        const yPos = sNode?.position.y || 0;
+
+        const sourceHash = source.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const handleHash = (sourceHandleId || '').split('').reduce((acc, h) => acc + h.charCodeAt(0), 0);
+
+        // Use a combination of ID hash and Y-position to ensure unique lanes for stacked gates
+        // We use a 20-lane system with 12px spacing for a clean but dense look
+        const combinedHash = sourceHash + handleHash + Math.floor(yPos / 20);
+        const lane = combinedHash % 20;
+
+        return 30 + (lane * 12);
+    }, [source, sourceHandleId, nodes]);
     let finalSourceX = sourceX;
     let finalSourceY = sourceY;
     let finalTargetX = targetX;
     let finalTargetY = targetY;
 
-    // Adjust endpoint for Junction Nodes (snap to center of 30x30 node = +15)
-    // This ensures handles align with the 15px grid points.
+    // Node lookups
     const sNode = nodes.find(n => n.id === source);
+    const tNode = nodes.find(n => n.id === target);
+
     if (sNode?.type === 'junction') {
         finalSourceX = sNode.position.x + 15;
         finalSourceY = sNode.position.y + 15;
     }
-
-    const tNode = nodes.find(n => n.id === target);
     if (tNode?.type === 'junction') {
         finalTargetX = tNode.position.x + 15;
         finalTargetY = tNode.position.y + 15;
     }
 
-    const midX = (finalSourceX + finalTargetX) / 2;
+    // Highlighting Logic: Entire net glows together
+    const siblings = edges.filter((e: Edge) => e.source === source && e.sourceHandle === sourceHandleId);
+    const isNetSelected = selected || siblings.some(e => e.selected);
 
-    // Calculate appropriate vertical channel (centerX)
-    let centerX: number | undefined;
+    // Shared deterministic vertical channel
+    const isHorizontal = Math.abs(finalSourceY - finalTargetY) < 1;
+    let centerX: number | undefined = isHorizontal ? undefined : (finalSourceX + offset);
 
-    // Check if the connection is effectively horizontal (aligned within grid tolerance)
-    const isHorizontal = Math.abs(finalSourceY - finalTargetY) < 10;
-
-    if (isHorizontal) {
-        // For horizontal connections, do NOT force a vertical channel.
-        // Let the router draw a straight line. This prevents loops and zig-zags.
-        centerX = undefined;
-    } else if (sNode?.type === 'junction') {
-        // Shared Bus Logic for Junctions: 
-        // Force the vertical segment to align exactly with the Junction center (finalSourceX)
-        // ONLY if we are dropping vertically (Top/Bottom handle).
-        if (sourceHandleId && (sourceHandleId.includes('bottom') || sourceHandleId.includes('top'))) {
-            centerX = finalSourceX;
-        }
-    } else {
-        // Standard Logic for Components (Vertical/Diagonal connections): 
-        // Use the computed offset (Sibling Index + Vertical Stagger) to stagger vertical channels
-        // avoiding overlap for independent signals.
-        centerX = midX + offset - 20;
+    // Override for vertical drops from junctions
+    if (sNode?.type === 'junction' && sourceHandleId && (sourceHandleId.includes('bottom') || sourceHandleId.includes('top'))) {
+        centerX = finalSourceX;
     }
 
-    const edgePath = getSmartPath(
-        finalSourceX,
-        finalSourceY,
-        sourcePosition,
-        finalTargetX,
-        finalTargetY,
-        targetPosition,
-        offset,
-        nodes,
-        [source, target],
-        centerX
-    );
+    // --- INTERACTIVE ROUTING OFFSET (Visio-style) ---
+    const { setEdges } = useDiagramStore();
+    const routingOffset = (data as any)?.routingOffset || 0;
 
-    const sourceNode = sNode; // Reuse found node
-    const bitWidth = parseInt((sourceNode?.data as any)?.bitWidth || '1');
+    // Apply the user-defined offset to our calculated base centerX
+    const finalCenterX = centerX !== undefined ? (centerX + routingOffset) : undefined;
+
+    const [edgePath] = getSmoothStepPath({
+        sourceX: finalSourceX,
+        sourceY: finalSourceY,
+        sourcePosition,
+        targetX: finalTargetX,
+        targetY: finalTargetY,
+        targetPosition,
+        borderRadius: 0, // Perfectly sharp Manhattan corners
+        centerX: finalCenterX
+    });
+
+    const bitWidth = parseInt((sNode?.data as any)?.bitWidth || '1');
     const isBus = bitWidth > 1;
-    const busStrokeWidth = (Number(style?.strokeWidth) || 2) + (isBus ? 2 : 0);
-    const strokeColor = selected ? 'var(--color-wire-selected)' : (style.stroke || 'var(--color-wire)');
-    const finalStrokeWidth = selected ? busStrokeWidth + 1 : busStrokeWidth;
+    const finalStrokeWidth = isBus ? 4 : 2;
+    const strokeColor = isNetSelected ? 'var(--color-wire-selected)' : (style.stroke || 'var(--color-wire)');
+
+    // PRECISE JUNCTION LOGIC (Dots):
+    // Identify ALL targets in this net to decide on trunk geometry
+    const netPoints = useMemo(() => {
+        return siblings.map(e => {
+            const targetNode = nodes.find(n => n.id === e.target);
+            if (!targetNode) return undefined;
+
+            const tType = targetNode.type;
+            const hId = e.targetHandle;
+
+            // Calculate exact handle coordinates (estimating where React Flow puts them)
+            let tx = targetNode.position.x;
+            let ty = targetNode.position.y;
+
+            // Handle Position Detection (React Flow default is center)
+            const handlePos = (e.targetHandle === 'sel-top' || e.targetHandle === 'sel-bottom') ? Position.Bottom : (e.targetHandle === 'clk' && tType === 'dff' ? Position.Left : Position.Left);
+
+            if (tType === 'junction' || tType === 'input' || tType === 'output' || tType === 'clock') {
+                tx += 15; ty += 15;
+            } else if (tType === 'dff') {
+                tx += 0;
+                ty += hId === 'd' ? 24 : 48;
+            } else if (tType === 'mux' || tType === 'mux2' || tType === 'mux4') {
+                if (hId === 'sel-top' || hId === 'sel-bottom') {
+                    tx += 30;
+                    ty += hId === 'sel-top' ? 0 : (tType === 'mux4' ? 120 : (tType === 'mux' || tType === 'mux2' ? 60 : 90));
+                }
+                else {
+                    tx += 0;
+                    if (hId === 'in0' || hId === 'a') ty += 15;
+                    else if (hId === 'in1' || hId === 'b') ty += 30;
+                    else if (hId === 'in2') ty += 45;
+                    else if (hId === 'in3') ty += 60;
+                }
+            } else if (tType === 'arithmetic') {
+                tx += 0;
+                ty += hId === 'a' ? 15 : 45;
+            } else {
+                tx += 0;
+                ty += hId === 'a' || hId === 'in' ? 15 : 45;
+            }
+
+            return { x: tx, y: ty, handleId: hId };
+        }).filter(p => p !== undefined) as { x: number, y: number, handleId: string | null | undefined }[];
+    }, [siblings, nodes]);
+
+    // DOMINANT ORIENTATION: All siblings MUST agree on the trunk type
+    // If any target in the net is a 'sel' (Top/Bottom handle), force Horizontal Trunk
+    const isHorizontalNet = netPoints.some(p => p.handleId?.startsWith('sel'));
+
+    const junctionDots = useMemo(() => {
+        if (siblings.length < 2) return [];
+
+        if (isHorizontalNet) {
+            // Horizontal Trunk at y = finalSourceY
+            // Trunk spans from SourceX to the furthest target
+            const xs = [finalSourceX, ...netPoints.map(p => p.x)].sort((a, b) => a - b);
+            const maxX = xs[xs.length - 1];
+
+            // A dot appears on the horizontal trunk for every vertical tap OFF the trunk
+            return netPoints
+                .filter(p => p.handleId?.startsWith('sel'))
+                .filter(p => p.x < maxX || (p.x === finalSourceX && siblings.length > 1))
+                .map(p => ({ x: p.x, y: finalSourceY }));
+        } else {
+            // Vertical Trunk at x = finalCenterX
+            if (finalCenterX === undefined) return [];
+            const ys = [finalSourceY, ...netPoints.map(p => p.y)].sort((a, b) => a - b);
+            const minY = ys[0];
+            const maxY = ys[ys.length - 1];
+
+            return ys.filter(y => {
+                if (y === finalSourceY && siblings.length > 1) return true;
+                if (y > minY && y < maxY) return true;
+                return false;
+            }).map(y => ({ x: finalCenterX, y }));
+        }
+    }, [isHorizontalNet, netPoints, finalSourceX, finalSourceY, siblings.length, finalCenterX]);
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        const startX = e.clientX;
+        const initialOffset = routingOffset;
+
+        const onMouseMove = (moveEvent: MouseEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const newOffset = Math.round((initialOffset + dx) / 5) * 5; // Snap to 5px intervals for fine control
+
+            // Apply to ALL siblings in the net simultaneously
+            setEdges(edges.map(edge => {
+                if (edge.source === source && edge.sourceHandle === sourceHandleId) {
+                    const existingData = edge.data || {};
+                    return { ...edge, data: { ...existingData, routingOffset: newOffset } };
+                }
+                return edge;
+            }));
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }, [routingOffset, edges, source, sourceHandleId, setEdges]);
 
     return (
         <>
-            {/* Background path for "bridge" effect (simulates jump) */}
             <path
                 d={edgePath}
                 fill="none"
                 stroke="var(--color-bg-primary)"
                 strokeWidth={finalStrokeWidth + 4}
-                style={{
-                    ...style,
-                    stroke: 'var(--color-bg-primary)',
-                    strokeWidth: finalStrokeWidth + 4,
-                }}
+                style={{ ...style, stroke: 'var(--color-bg-primary)', strokeWidth: finalStrokeWidth + 4 }}
             />
-            {/* Main visible path */}
+            {/* Wider invisible path for easier selection/interaction */}
+            <path
+                d={edgePath}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={15}
+                className="react-flow__edge-interaction"
+            />
             <path
                 id={id}
-                style={{
-                    ...style,
-                    stroke: strokeColor,
-                    strokeWidth: finalStrokeWidth,
-                }}
+                style={{ ...style, stroke: strokeColor, strokeWidth: finalStrokeWidth }}
                 className="react-flow__edge-path"
                 d={edgePath}
                 markerEnd={markerEnd}
                 fill="none"
             />
+
+            {/* Manual Routing Handle: Only show when net is selected and a trunk exists */}
+            {finalCenterX !== undefined && isNetSelected && (
+                <g style={{ cursor: 'ew-resize' }} onMouseDown={handleMouseDown}>
+                    {/* Visual Grabber: Diamond Shape */}
+                    <rect
+                        x={finalCenterX - 5}
+                        y={(finalSourceY + finalTargetY) / 2 - 5}
+                        width={10}
+                        height={10}
+                        transform={`rotate(45, ${finalCenterX}, ${(finalSourceY + finalTargetY) / 2})`}
+                        fill="var(--color-accent)"
+                        stroke="var(--color-bg-primary)"
+                        strokeWidth={2}
+                    />
+                    {/* Invisible Larger Grabber Hitbox */}
+                    <rect
+                        x={finalCenterX - 10}
+                        y={(finalSourceY + finalTargetY) / 2 - 20}
+                        width={20}
+                        height={40}
+                        fill="transparent"
+                    />
+                </g>
+            )}
+
+            {/* Junction Dots: Every edge in the net renders ALL dots to ensure they stay on top */}
+            {finalCenterX !== undefined && junctionDots.map((dot, i) => (
+                <circle
+                    key={`${id}-dot-${i}`}
+                    cx={finalCenterX + (isHorizontalNet ? 0 : 0)} // Note: logic for horizontal net might need dot.x if we move dot logic
+                    cy={dot.y}
+                    r={5}
+                    fill={strokeColor}
+                    stroke="var(--color-bg-primary)"
+                    strokeWidth={3}
+                    style={{ pointerEvents: 'none' }}
+                />
+            ))}
         </>
     );
 });

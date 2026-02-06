@@ -267,31 +267,35 @@ DffNode.displayName = 'DffNode';
 // Input Node
 export const InputNode = memo(({ data }: NodeProps) => {
     return (
-        <div style={{ position: 'relative', width: '30px', height: '30px' }}>
+        <div className="io-node" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '8px',
+            height: '30px',
+            position: 'relative',
+            pointerEvents: 'none' // Parent doesn't catch clicks
+        }}>
             <div style={{
-                position: 'absolute',
-                right: '100%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                paddingRight: '8px',
                 color: 'var(--color-text-primary)',
                 fontSize: '12px',
                 whiteSpace: 'nowrap',
-                pointerEvents: 'none' // Let clicks pass through to canvas if needed, or allow drag? 
-                // Actually usually better to allow drag on label. Remove pointerEvents: none if label drag desired.
-                // But usually dragging symbol is primary. Keeping label interactive is generally good.
+                userSelect: 'none',
+                pointerEvents: 'auto'
             }}>
                 {data.label}{(data.bitWidth && parseInt(data.bitWidth) > 1) ? ` [${parseInt(data.bitWidth) - 1}:0]` : ''}
             </div>
-            <svg width="30" height="30" viewBox="0 0 30 30">
-                <path
-                    d="M 0 7.5 L 20 7.5 L 30 15 L 20 22.5 L 0 22.5 Z"
-                    fill="var(--color-gate-fill)"
-                    stroke="var(--color-port-stroke)"
-                    strokeWidth="2"
-                />
-            </svg>
-            <Handle type="source" position={Position.Right} id="out" style={{ top: '50%', opacity: 0 }} />
+            <div style={{ width: '30px', height: '30px', position: 'relative', flexShrink: 0, pointerEvents: 'auto' }}>
+                <svg width="30" height="30" viewBox="0 0 30 30" style={{ display: 'block' }}>
+                    <path
+                        d="M 0 7.5 L 20 7.5 L 30 15 L 20 22.5 L 0 22.5 Z"
+                        fill="var(--color-gate-fill)"
+                        stroke="var(--color-port-stroke)"
+                        strokeWidth="2"
+                    />
+                </svg>
+                <Handle type="source" position={Position.Right} id="out" style={{ top: '50%', right: -4, opacity: 0 }} />
+            </div>
         </div>
     );
 });
@@ -300,21 +304,16 @@ InputNode.displayName = 'InputNode';
 // Output Node
 export const OutputNode = memo(({ data }: NodeProps) => {
     return (
-        <div style={{ position: 'relative', width: '30px', height: '30px' }}>
-            <div style={{
-                position: 'absolute',
-                left: '100%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                paddingLeft: '8px',
-                color: 'var(--color-text-primary)',
-                fontSize: '12px',
-                whiteSpace: 'nowrap'
-            }}>
-                {data.label}{(data.bitWidth && parseInt(data.bitWidth) > 1) ? ` [${parseInt(data.bitWidth) - 1}:0]` : ''}
-            </div>
-            <div style={{ position: 'relative', width: '30px', height: '30px' }}>
-                <svg width="30" height="30" viewBox="0 0 30 30">
+        <div className="io-node" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            height: '30px',
+            position: 'relative',
+            pointerEvents: 'none'
+        }}>
+            <div style={{ width: '30px', height: '30px', position: 'relative', flexShrink: 0, pointerEvents: 'auto' }}>
+                <svg width="30" height="30" viewBox="0 0 30 30" style={{ display: 'block' }}>
                     <path
                         d="M 0 7.5 L 20 7.5 L 30 15 L 20 22.5 L 0 22.5 Z"
                         fill="var(--color-gate-fill)"
@@ -322,7 +321,16 @@ export const OutputNode = memo(({ data }: NodeProps) => {
                         strokeWidth="2"
                     />
                 </svg>
-                <Handle type="target" position={Position.Left} id="in" style={{ top: '50%', opacity: 0 }} />
+                <Handle type="target" position={Position.Left} id="in" style={{ top: '50%', left: -4, opacity: 0 }} />
+            </div>
+            <div style={{
+                color: 'var(--color-text-primary)',
+                fontSize: '12px',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                pointerEvents: 'auto'
+            }}>
+                {data.label}{(data.bitWidth && parseInt(data.bitWidth) > 1) ? ` [${parseInt(data.bitWidth) - 1}:0]` : ''}
             </div>
         </div>
     );
@@ -331,30 +339,33 @@ OutputNode.displayName = 'OutputNode';
 
 export const ClockNode = memo(({ data }: NodeProps) => {
     return (
-        <div style={{ position: 'relative', width: '30px', height: '30px' }}>
+        <div className="io-node" style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            height: '30px',
+            position: 'relative',
+            pointerEvents: 'none'
+        }}>
             <div style={{
-                position: 'absolute',
-                right: '100%',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                paddingRight: '8px',
                 color: 'var(--color-text-primary)',
                 fontSize: '12px',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                pointerEvents: 'auto'
             }}>
                 {data.label || 'CLK'}
             </div>
-            <div className="io-node clock-node" style={{ width: '30px', height: '30px', position: 'relative' }}>
-                <svg width="30" height="30" viewBox="0 0 30 30">
-                    <rect x="1" y="1" width="28" height="28" fill="none" stroke="var(--color-clock-stroke)" strokeWidth="2" />
+            <div style={{ width: '30px', height: '30px', position: 'relative', flexShrink: 0, pointerEvents: 'auto' }}>
+                <svg width="30" height="30" viewBox="0 0 30 30" style={{ display: 'block' }}>
+                    <rect x="1" y="1" width="28" height="28" fill="var(--color-gate-fill)" stroke="var(--color-clock-stroke)" strokeWidth="2" />
                     <path d="M 5 25 L 10 25 L 10 10 L 20 10 L 20 25 L 25 25" fill="none" stroke="var(--color-clock-stroke)" strokeWidth="2" />
                 </svg>
-                <Handle type="source" position={Position.Right} id="out" style={{ top: '50%', background: 'var(--color-clock-stroke)' }} />
+                <Handle type="source" position={Position.Right} id="out" style={{ top: '50%', right: -4, opacity: 0 }} />
             </div>
         </div>
     );
 });
-
 ClockNode.displayName = 'ClockNode';
 
 // Multiplexer Node
@@ -377,7 +388,8 @@ export const MuxNode = memo(({ data }: NodeProps) => {
                     style={{ top: `${15 + i * 30}px` }}
                 />
             ))}
-            <Handle type="target" position={Position.Bottom} id="sel" />
+            <Handle type="target" position={Position.Top} id="sel-top" style={{ left: '30px' }} />
+            <Handle type="target" position={Position.Bottom} id="sel-bottom" style={{ left: '30px' }} />
             <svg width="60" height={height} viewBox={`0 0 60 ${height}`}>
                 {Array.from({ length: numInputs }).map((_, i) => (
                     <path

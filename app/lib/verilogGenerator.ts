@@ -295,6 +295,8 @@ export function generateVerilogCode(
                     const data = dataEdge ? (resolveNetName(dataEdge.id) || 'data') : 'data';
                     const output = resolveNetName(outputEdges[0].id);
 
+                    code += '\n';
+                    code += `  // D Flip-Flop: ${output}\n`;
                     code += `  always @(posedge ${clock}) begin\n`;
                     code += `    ${output} <= ${data};\n`;
                     code += `  end\n`;
@@ -333,7 +335,7 @@ export function generateVerilogCode(
             case 'mux2':
                 if (outputEdges.length > 0) {
                     const output = resolveNetName(outputEdges[0].id);
-                    const selEdge = inputEdges.find(e => e.targetHandle === 'sel');
+                    const selEdge = inputEdges.find(e => e.targetHandle && e.targetHandle.startsWith('sel'));
                     const sel = selEdge ? (resolveNetName(selEdge.id) || 'sel') : 'sel';
 
                     const in0Edge = inputEdges.find(e => e.targetHandle === 'in0');
@@ -341,6 +343,8 @@ export function generateVerilogCode(
                     const in1Edge = inputEdges.find(e => e.targetHandle === 'in1');
                     const in1 = in1Edge ? (resolveNetName(in1Edge.id) || 'in1') : 'in1';
 
+                    code += '\n';
+                    code += `  // 2:1 Multiplexer: ${output}\n`;
                     code += `  always @(*) begin\n`;
                     code += `    if (${sel}) begin\n`;
                     code += `      ${output} = ${in1};\n`; // sel=1 selects in1 usually? Or in0? Standard Mux: 0->in0, 1->in1.
@@ -355,7 +359,7 @@ export function generateVerilogCode(
             case 'mux':
                 if (outputEdges.length > 0) {
                     const output = resolveNetName(outputEdges[0].id);
-                    const selEdge = inputEdges.find(e => e.targetHandle === 'sel');
+                    const selEdge = inputEdges.find(e => e.targetHandle && e.targetHandle.startsWith('sel'));
                     const sel = selEdge ? (resolveNetName(selEdge.id) || 'sel') : 'sel';
 
                     // Determine size
@@ -365,6 +369,8 @@ export function generateVerilogCode(
 
                     const selBits = Math.ceil(Math.log2(size));
 
+                    code += '\n';
+                    code += `  // ${size}:1 Multiplexer: ${output}\n`;
                     code += `  always @(*) begin\n`;
                     code += `    case (${sel})\n`;
 
