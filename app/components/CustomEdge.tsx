@@ -1,7 +1,7 @@
 'use client';
 
-import { memo, useMemo, useCallback } from 'react';
-import { EdgeProps, getSmoothStepPath, useEdges, Edge, Position, useNodes } from 'reactflow';
+import { memo, useMemo, useCallback, useEffect } from 'react';
+import { EdgeProps, getSmoothStepPath, useEdges, Edge, Position, useNodes, useReactFlow } from 'reactflow';
 import { useDiagramStore } from '../store/diagramStore';
 import { getSmartPath } from '../lib/router';
 
@@ -36,11 +36,11 @@ export const CustomEdge = memo(({
         const handleHash = (sourceHandleId || '').split('').reduce((acc, h) => acc + h.charCodeAt(0), 0);
 
         // Use a combination of ID hash and Y-position to ensure unique lanes for stacked gates
-        // We use a 20-lane system with 12px spacing for a clean but dense look
+        // We use a 20-lane system with 15px spacing to stay perfectly on the grid
         const combinedHash = sourceHash + handleHash + Math.floor(yPos / 20);
         const lane = combinedHash % 20;
 
-        return 30 + (lane * 12);
+        return 30 + (lane * 15);
     }, [source, sourceHandleId, nodes]);
     let finalSourceX = sourceX;
     let finalSourceY = sourceY;
@@ -66,7 +66,7 @@ export const CustomEdge = memo(({
 
     // Shared deterministic vertical channel
     const isHorizontal = Math.abs(finalSourceY - finalTargetY) < 1;
-    let centerX: number | undefined = isHorizontal ? undefined : (finalSourceX + offset);
+    let centerX: number | undefined = isHorizontal ? undefined : Math.round((finalSourceX + offset) / 15) * 15;
 
     // Override for vertical drops from junctions
     if (sNode?.type === 'junction' && sourceHandleId && (sourceHandleId.includes('bottom') || sourceHandleId.includes('top'))) {
@@ -74,7 +74,8 @@ export const CustomEdge = memo(({
     }
 
     // --- INTERACTIVE ROUTING OFFSET (Visio-style) ---
-    const { setEdges } = useDiagramStore();
+    const setEdges = useDiagramStore(s => s.setEdges);
+    const { screenToFlowPosition } = useReactFlow();
     const routingOffset = (data as any)?.routingOffset || 0;
 
     // Apply the user-defined offset to our calculated base centerX
@@ -177,12 +178,14 @@ export const CustomEdge = memo(({
 
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        const startX = e.clientX;
+        const startFlowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
         const initialOffset = routingOffset;
 
         const onMouseMove = (moveEvent: MouseEvent) => {
-            const dx = moveEvent.clientX - startX;
-            const newOffset = Math.round((initialOffset + dx) / 5) * 5; // Snap to 5px intervals for fine control
+            const currentFlowPos = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY });
+            const dx = currentFlowPos.x - startFlowPos.x;
+            // Precise grid snapping (15px) and 1:1 drag movement
+            const newOffset = Math.round((initialOffset + dx) / 15) * 15;
 
             // Apply to ALL siblings in the net simultaneously
             setEdges(edges.map(edge => {
@@ -201,7 +204,32 @@ export const CustomEdge = memo(({
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
-    }, [routingOffset, edges, source, sourceHandleId, setEdges]);
+    }, [routingOffset, edges, source, sourceHandleId, setEdges, screenToFlowPosition]);
+
+    // Keyboard support for Left/Right movement
+    useEffect(() => {
+        if (!selected) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                const step = 15 * (e.shiftKey ? 2 : 1);
+                const delta = e.key === 'ArrowLeft' ? -step : step;
+                const newOffset = routingOffset + delta;
+
+                setEdges(edges.map(edge => {
+                    if (edge.source === source && edge.sourceHandle === sourceHandleId) {
+                        const existingData = edge.data || {};
+                        return { ...edge, data: { ...existingData, routingOffset: newOffset } };
+                    }
+                    return edge;
+                }));
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selected, routingOffset, edges, source, sourceHandleId, setEdges]);
 
     return (
         <>
@@ -242,13 +270,14 @@ export const CustomEdge = memo(({
                         fill="var(--color-accent)"
                         stroke="var(--color-bg-primary)"
                         strokeWidth={2}
+                        style={{ pointerEvents: 'none' }}
                     />
-                    {/* Invisible Larger Grabber Hitbox */}
+                    {/* Invisible Larger Grabber Hitbox: Centered Square */}
                     <rect
-                        x={finalCenterX - 10}
-                        y={(finalSourceY + finalTargetY) / 2 - 20}
-                        width={20}
-                        height={40}
+                        x={finalCenterX - 15}
+                        y={(finalSourceY + finalTargetY) / 2 - 15}
+                        width={30}
+                        height={30}
                         fill="transparent"
                     />
                 </g>
